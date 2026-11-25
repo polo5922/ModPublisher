@@ -1,0 +1,782 @@
+<Window x:Class="ModPublisher.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:l="clr-namespace:ModPublisher.Services"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+        xmlns:vm="clr-namespace:ModPublisher.ViewModels"
+        Title="ModPublisher — Modrinth + CurseForge" Width="1400" Height="900" MinWidth="1050" MinHeight="680"
+        Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
+        WindowStartupLocation="CenterScreen" Icon="/Assets/app.ico">
+    <Window.Resources>
+        <!-- Icône du mod : image arrondie, ou l'initiale sur fond d'accent s'il n'y en a pas -->
+        <DataTemplate x:Key="ModIcon">
+            <Grid>
+                <Border CornerRadius="8" Background="{DynamicResource AccentFillColorDefaultBrush}"
+                        Visibility="{Binding Icon, Converter={StaticResource NullToVis}, ConverterParameter=invert}">
+                    <TextBlock Text="{Binding Initial}" Foreground="White" FontWeight="Bold" FontSize="18"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+                <Border CornerRadius="8" Visibility="{Binding Icon, Converter={StaticResource NullToVis}}">
+                    <Border.Background>
+                        <ImageBrush ImageSource="{Binding Icon}" Stretch="UniformToFill"/>
+                    </Border.Background>
+                </Border>
+            </Grid>
+        </DataTemplate>
+        <!-- En-tête d'onglet : icône + texte -->
+        <DataTemplate x:Key="TabHeader">
+            <StackPanel Orientation="Horizontal" Margin="2,0">
+                <TextBlock Style="{StaticResource Glyph}" Text="{Binding Tag, RelativeSource={RelativeSource AncestorType=TabItem}, Converter={x:Static vm:TabGlyph.Instance}}" Margin="0,0,8,0"/>
+                <TextBlock Text="{Binding}" VerticalAlignment="Center"/>
+            </StackPanel>
+        </DataTemplate>
+        <Style TargetType="TabItem" BasedOn="{StaticResource DefaultTabItemStyle}">
+            <Setter Property="HeaderTemplate" Value="{StaticResource TabHeader}"/>
+            <Setter Property="Padding" Value="14,8"/>
+        </Style>
+        <Style x:Key="Separator" TargetType="Border">
+            <Setter Property="Width" Value="1"/>
+            <Setter Property="Height" Value="22"/>
+            <Setter Property="Margin" Value="4,0,10,6"/>
+            <Setter Property="Background" Value="{DynamicResource CardStrokeColorDefaultBrush}"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="264"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- ===== Barre latérale : mods et état des comptes ===== -->
+        <Border Background="{DynamicResource LayerFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="0,0,1,0">
+            <DockPanel Margin="14,16,14,14">
+                <!-- Marque de l'app -->
+                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="4,0,0,20">
+                    <Border Width="36" Height="36" CornerRadius="9">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                <GradientStop Color="#1BD96A" Offset="0"/>
+                                <GradientStop Color="#F16436" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
+                        <TextBlock Style="{StaticResource Glyph}" Text="&#xE898;" Foreground="White" FontSize="18" HorizontalAlignment="Center"/>
+                    </Border>
+                    <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="ModPublisher" FontSize="17" FontWeight="SemiBold"/>
+                        <TextBlock Text="Modrinth · CurseForge" Style="{StaticResource Muted}" FontSize="11.5"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Bas : comptes et mode simulation -->
+                <StackPanel DockPanel.Dock="Bottom" Margin="0,10,0,0">
+                    <TextBlock Text="{l:T 'COMPTES', 'ACCOUNTS'}" Style="{StaticResource Caption}" Margin="4,0,0,8"/>
+                    <Border Style="{StaticResource Card}" Padding="12,10" Margin="0,0,0,10">
+                        <StackPanel>
+                            <DockPanel>
+                                <Ellipse Style="{StaticResource Dot}" Fill="{Binding Accounts.ModrinthOk, Converter={StaticResource BoolBrush}}"/>
+                                <TextBlock Text="Modrinth" FontWeight="SemiBold"/>
+                            </DockPanel>
+                            <TextBlock Text="{Binding Accounts.ModrinthState}" Style="{StaticResource Muted}" FontSize="11.5" Margin="15,1,0,8"/>
+                            <DockPanel>
+                                <Ellipse Style="{StaticResource Dot}" Fill="{Binding Accounts.CurseForgeOk, Converter={StaticResource BoolBrush}}"/>
+                                <TextBlock Text="CurseForge" FontWeight="SemiBold"/>
+                            </DockPanel>
+                            <TextBlock Text="{Binding Accounts.CurseForgeState}" Style="{StaticResource Muted}" FontSize="11.5" Margin="15,1,0,0"/>
+                        </StackPanel>
+                    </Border>
+                    <CheckBox Content="{l:T 'Mode simulation', 'Simulation mode'}" IsChecked="{Binding Simulation}" Margin="4,0,0,0"
+                              ToolTip="{l:T 'Rien n\'est envoyé : les requêtes sont seulement écrites dans le journal.', 'Nothing is sent: requests are only written to the log.'}"/>
+                </StackPanel>
+
+                <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,8,0,0">
+                    <Button Command="{Binding AddModCommand}" ToolTip="{l:T 'Ajouter un dossier de mod', 'Add a mod folder'}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Style="{StaticResource Glyph}" Text="&#xE710;" FontSize="12" Margin="0,0,8,0"/>
+                            <TextBlock Text="{l:T 'Ajouter un mod', 'Add a mod'}"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Style="{StaticResource Subtle}" Command="{Binding OpenModFolderCommand}" ToolTip="{l:T 'Ouvrir le dossier du mod', 'Open the mod folder'}">
+                        <TextBlock Style="{StaticResource Glyph}" Text="&#xE838;"/>
+                    </Button>
+                    <Button Style="{StaticResource Subtle}" Command="{Binding RemoveModCommand}" ToolTip="{l:T 'Retirer de la liste (rien n\'est supprimé)', 'Remove from the list (nothing is deleted)'}">
+                        <TextBlock Style="{StaticResource Glyph}" Text="&#xE74D;"/>
+                    </Button>
+                </StackPanel>
+
+                <TextBlock DockPanel.Dock="Top" Text="{l:T 'MES MODS', 'MY MODS'}" Style="{StaticResource Caption}" Margin="4,0,0,8"/>
+                <ListBox ItemsSource="{Binding Mods}" SelectedItem="{Binding SelectedMod}" Background="Transparent" BorderThickness="0"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem" BasedOn="{StaticResource DefaultListBoxItemStyle}">
+                            <Setter Property="Padding" Value="8,7"/>
+                            <Setter Property="Margin" Value="0,0,0,2"/>
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <DockPanel ToolTip="{Binding Folder}">
+                                <ContentControl Content="{Binding}" ContentTemplate="{StaticResource ModIcon}" Width="36" Height="36" Margin="0,0,10,0"/>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock FontSize="11.5" Style="{StaticResource Muted}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis">
+                                        <Run Text="{Binding Version, Mode=OneWay}"/><Run Text="  "/><Run Text="{Binding Info, Mode=OneWay}"/>
+                                    </TextBlock>
+                                </StackPanel>
+                            </DockPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
+        </Border>
+
+        <!-- ===== Zone principale ===== -->
+        <Grid Grid.Column="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- En-tête : mod sélectionné et liens vers ses pages -->
+            <DockPanel Margin="24,18,20,10">
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Command="{Binding OpenModrinthPageCommand}" ToolTip="{l:T 'Ouvrir la page Modrinth', 'Open the Modrinth page'}">
+                        <StackPanel Orientation="Horizontal">
+                            <Ellipse Style="{StaticResource Dot}" Fill="{StaticResource ModrinthBrush}"/>
+                            <TextBlock Text="Modrinth"/>
+                            <TextBlock Style="{StaticResource Glyph}" Text="&#xE8A7;" FontSize="11" Margin="8,0,0,0"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Command="{Binding OpenCurseForgePageCommand}" ToolTip="{l:T 'Ouvrir la page CurseForge', 'Open the CurseForge page'}" Margin="0,0,0,6">
+                        <StackPanel Orientation="Horizontal">
+                            <Ellipse Style="{StaticResource Dot}" Fill="{StaticResource CurseForgeBrush}"/>
+                            <TextBlock Text="CurseForge"/>
+                            <TextBlock Style="{StaticResource Glyph}" Text="&#xE8A7;" FontSize="11" Margin="8,0,0,0"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" DataContext="{Binding SelectedMod}">
+                    <ContentControl Content="{Binding}" ContentTemplate="{StaticResource ModIcon}" Width="48" Height="48" Margin="0,0,14,0"/>
+                    <StackPanel VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{Binding Name, FallbackValue={l:T 'Aucun mod', 'No mod'}, TargetNullValue={l:T 'Aucun mod', 'No mod'}}" Style="{StaticResource PageTitle}"/>
+                            <Border Style="{StaticResource Pill}" Margin="12,4,0,0" VerticalAlignment="Center" Padding="8,2"
+                                    Visibility="{Binding Version, Converter={StaticResource NullToVis}, FallbackValue=Collapsed}">
+                                <TextBlock Text="{Binding Version}" FontSize="12" FontWeight="SemiBold"/>
+                            </Border>
+                        </StackPanel>
+                        <TextBlock Style="{StaticResource Muted}" FontSize="12" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap">
+                            <Run Text="{Binding Info, Mode=OneWay}"/><Run Text="   "/><Run Text="{Binding Folder, Mode=OneWay, FallbackValue={l:T 'Ajoute un mod avec « Ajouter un mod »', 'Add a mod with “Add a mod”'}}"/>
+                        </TextBlock>
+                    </StackPanel>
+                </StackPanel>
+            </DockPanel>
+
+            <!-- Activité en cours -->
+            <ProgressBar Grid.Row="1" IsIndeterminate="True" Height="3" Margin="24,0,20,0" MinHeight="0"
+                         Visibility="{Binding Busy, Converter={StaticResource BoolToVis}}"/>
+
+            <!-- Bandeau du mode simulation -->
+            <Border Grid.Row="2" Margin="24,6,20,0" Padding="12,8" CornerRadius="8" Background="#33F59E0B" BorderBrush="#80F59E0B" BorderThickness="1"
+                    Visibility="{Binding Simulation, Converter={StaticResource BoolToVis}}">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Style="{StaticResource Glyph}" Text="&#xE7BA;" Foreground="#F59E0B" Margin="0,0,10,0"/>
+                    <TextBlock Text="{l:T 'Mode simulation : rien n\'est envoyé aux sites, les requêtes sont seulement écrites dans le journal.', 'Simulation mode: nothing is sent to the sites, requests are only written to the log.'}" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Pendant une opération, seul le contenu des onglets est désactivé : désactiver le TabControl fait planter
+                 l'animation « désactivé » des onglets Fluent (« Impossible d'animer '(0).(1)' ») -->
+            <TabControl x:Name="Tabs" Grid.Row="3" SelectedValuePath="Tag" SelectedValue="{Binding CurrentTab}" Margin="16,8,12,0">
+                <!-- ===== Page ===== -->
+                <TabItem Header="Page" Tag="page">
+                    <Grid IsEnabled="{Binding DataContext.Busy, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource InverseBool}}" Margin="8,12,8,0" DataContext="{Binding Page}">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <Border Style="{StaticResource Toolbar}">
+                            <WrapPanel>
+                                <Button Command="{Binding SaveLocalCommand}" ToolTip="{l:T 'Écrit modpage/description.md et summary.txt', 'Writes modpage/description.md and summary.txt'}">
+                                    <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource Glyph}" Text="&#xE74E;" Margin="0,0,8,0"/><TextBlock Text="{l:T 'Enregistrer', 'Save'}"/></StackPanel>
+                                </Button>
+                                <Button Command="{Binding CompareCommand}" ToolTip="{l:T 'Lit la page des deux sites et la compare à la description locale', 'Reads the page on both sites and compares it with the local description'}">
+                                    <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource Glyph}" Text="&#xE895;" Margin="0,0,8,0"/><TextBlock Text="{l:T 'Comparer avec les sites', 'Compare with the sites'}"/></StackPanel>
+                                </Button>
+                                <Border Style="{StaticResource Separator}"/>
+                                <Button Command="{Binding PushBothCommand}" Style="{StaticResource Accent}">
+                                    <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource Glyph}" Text="&#xE724;" Margin="0,0,8,0"/><TextBlock Text="{l:T 'Envoyer sur les deux', 'Send to both'}"/></StackPanel>
+                                </Button>
+                                <Button Content="{l:T 'Modrinth seul', 'Modrinth only'}" Command="{Binding PushModrinthCommand}"/>
+                                <Button Content="{l:T 'CurseForge seul', 'CurseForge only'}" Command="{Binding PushCurseForgeCommand}"/>
+                                <Border Style="{StaticResource Separator}"/>
+                                <Button Command="{Binding PullFromModrinthCommand}" ToolTip="{l:T 'Remplace la description locale par celle de Modrinth', 'Replaces the local description with the one on Modrinth'}">
+                                    <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource Glyph}" Text="&#xE896;" Margin="0,0,8,0"/><TextBlock Text="{l:T 'Récupérer depuis Modrinth', 'Pull from Modrinth'}"/></StackPanel>
+                                </Button>
+                                <Button Command="{Binding LoadBackupCommand}">
+                                    <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource Glyph}" Text="&#xE81C;" Margin="0,0,8,0"/><TextBlock Text="{l:T 'Charger une sauvegarde…', 'Load a backup…'}"/></StackPanel>
+                                </Button>
+                            </WrapPanel>
+                        </Border>
+
+                        <Border Grid.Row="1" Style="{StaticResource Card}" Padding="14,10" Visibility="{Binding CanImportLegacy, Converter={StaticResource BoolToVis}}">
+                            <DockPanel>
+                                <Button DockPanel.Dock="Right" Content="{l:T 'Créer description.md', 'Create description.md'}" Command="{Binding ImportLegacyCommand}" Style="{StaticResource Accent}" Margin="8,0,0,0"/>
+                                <TextBlock Style="{StaticResource Glyph}" Text="&#xE946;" Margin="0,0,10,0"/>
+                                <TextBlock VerticalAlignment="Center" TextWrapping="Wrap" Text="{l:T 'Pas encore de description maître (modpage/description.md). La créer à partir de description-modrinth.md ?', 'No master description yet (modpage/description.md). Create it from description-modrinth.md?'}"/>
+                            </DockPanel>
+                        </Border>
+
+                        <!-- État de chaque site -->
+                        <Grid Grid.Row="2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="12"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Border Style="{StaticResource Card}" Padding="12,10">
+                                <DockPanel>
+                                    <Border Style="{StaticResource BrandBar}" Background="{StaticResource ModrinthBrush}"/>
+                                    <Button DockPanel.Dock="Right" Command="{Binding DiffModrinthCommand}" Style="{StaticResource Subtle}" Margin="6,0,0,0" ToolTip="{l:T 'Voir les différences', 'Show the differences'}">
+                                        <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource Glyph}" Text="&#xE8FD;" Margin="0,0,6,0"/><TextBlock Text="{l:T 'Différences', 'Differences'}"/></StackPanel>
+                                    </Button>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="Modrinth" FontWeight="SemiBold"/>
+                                        <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                            <Ellipse Style="{StaticResource Dot}" Fill="{Binding ModrinthStatus, Converter={StaticResource StatusBrush}}"/>
+                                            <TextBlock Text="{Binding ModrinthStatus}" Style="{StaticResource Muted}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                            <Border Grid.Column="2" Style="{StaticResource Card}" Padding="12,10">
+                                <DockPanel>
+                                    <Border Style="{StaticResource BrandBar}" Background="{StaticResource CurseForgeBrush}"/>
+                                    <Button DockPanel.Dock="Right" Command="{Binding DiffCurseForgeCommand}" Style="{StaticResource Subtle}" Margin="6,0,0,0" ToolTip="{l:T 'Voir les différences', 'Show the differences'}">
+                                        <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource Glyph}" Text="&#xE8FD;" Margin="0,0,6,0"/><TextBlock Text="{l:T 'Différences', 'Differences'}"/></StackPanel>
+                                    </Button>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="CurseForge" FontWeight="SemiBold"/>
+                                        <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                            <Ellipse Style="{StaticResource Dot}" Fill="{Binding CurseForgeStatus, Converter={StaticResource StatusBrush}}"/>
+                                            <TextBlock Text="{Binding CurseForgeStatus}" Style="{StaticResource Muted}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
+                                                       ToolTip="{Binding CurseForgeStatus}"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                        </Grid>
+
+                        <!-- Résumé et icône -->
+                        <Border Grid.Row="3" Style="{StaticResource Card}" Padding="14,10">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <DockPanel Margin="0,0,16,0">
+                                    <TextBlock DockPanel.Dock="Top" Margin="0,0,0,4">
+                                        <Run Text="{l:T 'Résumé', 'Summary'}" FontWeight="SemiBold"/>
+                                        <Run Text="  "/>
+                                        <Run Text="{Binding SummaryLength, Mode=OneWay}" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/><Run Text="/256" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                    </TextBlock>
+                                    <TextBox Text="{Binding Summary, UpdateSourceTrigger=PropertyChanged}"/>
+                                </DockPanel>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Border Width="52" Height="52" CornerRadius="10" Margin="0,0,12,0" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                                        <Border.Background>
+                                            <ImageBrush ImageSource="{Binding DataContext.SelectedMod.Icon, RelativeSource={RelativeSource AncestorType=Window}}" Stretch="UniformToFill"/>
+                                        </Border.Background>
+                                    </Border>
+                                    <StackPanel>
+                                        <Button Content="{l:T 'Choisir l\'icône…', 'Choose icon…'}" Command="{Binding ChooseIconCommand}" Margin="0,0,0,4" HorizontalAlignment="Stretch"/>
+                                        <Button Content="{l:T 'Envoyer l\'icône', 'Send icon'}" Command="{Binding PushIconCommand}" Margin="0" HorizontalAlignment="Stretch"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <!-- Éditeur et aperçu -->
+                        <Grid Grid.Row="4" Margin="0,0,0,8">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="12"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Border Grid.ColumnSpan="3" Margin="0,0,0,8" Padding="12,8" CornerRadius="8" Background="#26F59E0B" BorderBrush="#66F59E0B" BorderThickness="1"
+                                    Visibility="{Binding Warnings, Converter={StaticResource NullToVis}}">
+                                <DockPanel>
+                                    <TextBlock Style="{StaticResource Glyph}" Text="&#xE7BA;" Foreground="#F59E0B" Margin="0,0,10,0" VerticalAlignment="Top"/>
+                                    <TextBlock Text="{Binding Warnings}" TextWrapping="Wrap"/>
+                                </DockPanel>
+                            </Border>
+                            <DockPanel Grid.Row="1" Margin="2,0,0,6">
+                                <TextBlock Style="{StaticResource Glyph}" Text="&#xE943;" Margin="0,0,8,0"/>
+                                <TextBlock Text="{l:T 'Description (Markdown, format Modrinth)', 'Description (Markdown, Modrinth format)'}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            </DockPanel>
+                            <DockPanel Grid.Row="1" Grid.Column="2" Margin="2,0,0,6">
+                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                    <RadioButton Content="Modrinth" IsChecked="{Binding PreviewCurseForge, Converter={StaticResource InverseBool}}" MinWidth="0" Margin="0,0,12,0"/>
+                                    <RadioButton Content="CurseForge" IsChecked="{Binding PreviewCurseForge}" MinWidth="0"/>
+                                </StackPanel>
+                                <TextBlock Style="{StaticResource Glyph}" Text="&#xE7B3;" Margin="0,0,8,0"/>
+                                <TextBlock Text="{l:T 'Aperçu', 'Preview'}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            </DockPanel>
+                            <TextBox Grid.Row="2" Style="{StaticResource Code}" Padding="10,8" Text="{Binding Description, UpdateSourceTrigger=PropertyChanged, Delay=300}"/>
+                            <GridSplitter Grid.Row="2" Grid.Column="1" HorizontalAlignment="Stretch" Background="Transparent"/>
+                            <Border Grid.Row="2" Grid.Column="2" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="1">
+                                <wv2:WebView2 x:Name="Preview" DefaultBackgroundColor="#16181C"/>
+                            </Border>
+                        </Grid>
+                    </Grid>
+                </TabItem>
+
+                <!-- ===== Versions ===== -->
+                <TabItem Header="Versions" Tag="versions">
+                    <Grid IsEnabled="{Binding DataContext.Busy, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource InverseBool}}" Margin="8,12,8,8" DataContext="{Binding Versions}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="3*"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="2*" MinWidth="380"/>
+                        </Grid.ColumnDefinitions>
+
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Border Style="{StaticResource Card}" Padding="14,12">
+                                <DockPanel>
+                                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                                        <Button DockPanel.Dock="Right" Command="{Binding RefreshCommand}" Margin="0">
+                                            <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource Glyph}" Text="&#xE72C;" Margin="0,0,8,0"/><TextBlock Text="{l:T 'Actualiser', 'Refresh'}"/></StackPanel>
+                                        </Button>
+                                        <TextBlock Text="{l:T 'Versions publiées', 'Published versions'}" Style="{StaticResource SectionTitle}" Margin="0" VerticalAlignment="Center"/>
+                                    </DockPanel>
+                                    <DataGrid ItemsSource="{Binding Rows}" SelectedItem="{Binding Selected}" AutoGenerateColumns="False"
+                                              IsReadOnly="True" HeadersVisibility="Column" SelectionMode="Single" GridLinesVisibility="None"
+                                              Background="Transparent" BorderThickness="0" RowHeight="34">
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="Version" Binding="{Binding Number}" FontWeight="SemiBold"/>
+                                            <DataGridTextColumn Header="{l:T 'Nom', 'Name'}" Binding="{Binding Name}" Width="*"/>
+                                            <DataGridTextColumn Header="Type" Binding="{Binding Type}"/>
+                                            <DataGridTextColumn Header="Minecraft" Binding="{Binding GameVersions}"/>
+                                            <DataGridTextColumn Header="Sites" Binding="{Binding Sites}"/>
+                                            <DataGridTextColumn Header="Date" Binding="{Binding Date, StringFormat=d}"/>
+                                            <DataGridTextColumn Header="{l:T 'Téléch.', 'Downloads'}" Binding="{Binding Downloads}"/>
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                </DockPanel>
+                            </Border>
+
+                            <Border Grid.Row="1" Style="{StaticResource Card}" Margin="0">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource SectionTitle}"><Run Text="{l:T 'Modifier la version ', 'Edit version '}"/><Run Text="{Binding Selected.Number, Mode=OneWay, TargetNullValue={l:T '(aucune sélection)', '(none selected)'}}"/></TextBlock>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <ComboBox ItemsSource="{x:Static vm:VersionsViewModel.ReleaseTypes}" SelectedItem="{Binding EditType}" Width="120"/>
+                                        <TextBox Grid.Column="1" Text="{Binding EditGameVersions}" Margin="8,0" ToolTip="{l:T 'Versions de Minecraft, séparées par des virgules', 'Minecraft versions, separated by commas'}"/>
+                                        <CheckBox Grid.Column="2" Content="{l:T 'Mise en avant (Modrinth)', 'Featured (Modrinth)'}" IsChecked="{Binding EditFeatured}"/>
+                                    </Grid>
+                                    <TextBox Style="{StaticResource Code}" Text="{Binding EditChangelog}" Height="160" Margin="0,8"/>
+                                    <WrapPanel>
+                                        <Button Content="{l:T 'Reprendre depuis changelog.md', 'Reload from changelog.md'}" Command="{Binding ChangelogFromFileCommand}"/>
+                                        <Button Command="{Binding SaveEditCommand}" Style="{StaticResource Accent}">
+                                            <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource Glyph}" Text="&#xE74E;" Margin="0,0,8,0"/><TextBlock Text="{l:T 'Enregistrer sur les sites', 'Save to the sites'}"/></StackPanel>
+                                        </Button>
+                                    </WrapPanel>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+
+                        <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto">
+                            <Border Style="{StaticResource Card}" Margin="0">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                        <TextBlock Style="{StaticResource Glyph}" Text="&#xE898;" FontSize="16" Margin="0,0,10,10"/>
+                                        <TextBlock Text="{l:T 'Nouvelle version', 'New version'}" Style="{StaticResource SectionTitle}"/>
+                                    </StackPanel>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="10"/>
+                                            <ColumnDefinition Width="2*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel>
+                                            <TextBlock Text="{l:T 'Numéro', 'Number'}" Style="{StaticResource Label}" Margin="0,0,0,4"/>
+                                            <TextBox Text="{Binding NewVersion, UpdateSourceTrigger=PropertyChanged}"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="2">
+                                            <TextBlock Text="{l:T 'Nom affiché', 'Display name'}" Style="{StaticResource Label}" Margin="0,0,0,4"/>
+                                            <TextBox Text="{Binding NewName}"/>
+                                        </StackPanel>
+                                    </Grid>
+                                    <TextBlock Text="Jar" Style="{StaticResource Label}"/>
+                                    <TextBox Text="{Binding NewJar}"/>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="10"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="10"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel>
+                                            <TextBlock Text="Type" Style="{StaticResource Label}"/>
+                                            <ComboBox ItemsSource="{x:Static vm:VersionsViewModel.ReleaseTypes}" SelectedItem="{Binding NewType}" Width="120"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="2">
+                                            <TextBlock Text="Minecraft" Style="{StaticResource Label}"/>
+                                            <TextBox Text="{Binding NewGameVersions}"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="4">
+                                            <TextBlock Text="Loaders" Style="{StaticResource Label}"/>
+                                            <TextBox Text="{Binding NewLoaders}"/>
+                                        </StackPanel>
+                                    </Grid>
+                                    <TextBlock Text="{l:T 'Changelog (extrait de changelog.md)', 'Changelog (taken from changelog.md)'}" Style="{StaticResource Label}"/>
+                                    <TextBox Style="{StaticResource Code}" Text="{Binding NewChangelog}" Height="220"/>
+                                    <TextBlock Text="{l:T 'Envoyer sur', 'Send to'}" Style="{StaticResource Label}" Margin="0,12,0,4"/>
+                                    <WrapPanel>
+                                        <Border Style="{StaticResource Pill}">
+                                            <StackPanel Orientation="Horizontal">
+                                                <Ellipse Style="{StaticResource Dot}" Fill="{StaticResource ModrinthBrush}"/>
+                                                <CheckBox Content="Modrinth" IsChecked="{Binding ToModrinth}" MinWidth="0"/>
+                                            </StackPanel>
+                                        </Border>
+                                        <Border Style="{StaticResource Pill}">
+                                            <StackPanel Orientation="Horizontal">
+                                                <Ellipse Style="{StaticResource Dot}" Fill="{StaticResource CurseForgeBrush}"/>
+                                                <CheckBox Content="CurseForge" IsChecked="{Binding ToCurseForge}" MinWidth="0"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </WrapPanel>
+                                    <CheckBox Content="{l:T 'Compiler avant (gradlew build)', 'Build first (gradlew build)'}" IsChecked="{Binding BuildFirst}" Margin="0,4,0,0"/>
+                                    <WrapPanel Margin="0,12,0,0">
+                                        <Button Command="{Binding PrepareNewCommand}">
+                                            <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource Glyph}" Text="&#xE72C;" Margin="0,0,8,0"/><TextBlock Text="{l:T 'Relire les fichiers', 'Reload files'}"/></StackPanel>
+                                        </Button>
+                                        <Button Command="{Binding CheckCommand}">
+                                            <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource Glyph}" Text="&#xE73E;" Margin="0,0,8,0"/><TextBlock Text="{l:T 'Vérifier', 'Check'}"/></StackPanel>
+                                        </Button>
+                                        <Button Command="{Binding PublishCommand}" Style="{StaticResource Accent}">
+                                            <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource Glyph}" Text="&#xE724;" Margin="0,0,8,0"/><TextBlock Text="{l:T 'Publier', 'Publish'}"/></StackPanel>
+                                        </Button>
+                                    </WrapPanel>
+                                    <Border Margin="0,8,0,0" Padding="12,10" CornerRadius="8" Background="{DynamicResource SubtleFillColorSecondaryBrush}"
+                                            Visibility="{Binding CheckReport, Converter={StaticResource NullToVis}}">
+                                        <TextBlock Text="{Binding CheckReport}" TextWrapping="Wrap" FontFamily="Cascadia Mono, Consolas" FontSize="12"/>
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+                        </ScrollViewer>
+                    </Grid>
+                </TabItem>
+
+                <!-- ===== Galerie ===== -->
+                <TabItem Header="{l:T 'Galerie', 'Gallery'}" Tag="galerie">
+                    <Grid IsEnabled="{Binding DataContext.Busy, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource InverseBool}}" Margin="8,12,8,8" DataContext="{Binding Gallery}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="340"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <Border Grid.ColumnSpan="3" Style="{StaticResource Toolbar}">
+                            <WrapPanel>
+                                <Button Command="{Binding RefreshCommand}">
+                                    <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource Glyph}" Text="&#xE72C;" Margin="0,0,8,0"/><TextBlock Text="{l:T 'Actualiser', 'Refresh'}"/></StackPanel>
+                                </Button>
+                                <Border Style="{StaticResource Separator}"/>
+                                <Button Command="{Binding AddFilesCommand}">
+                                    <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource Glyph}" Text="&#xE710;" Margin="0,0,8,0"/><TextBlock Text="{l:T 'Ajouter des images…', 'Add images…'}"/></StackPanel>
+                                </Button>
+                                <Button Command="{Binding AddMissingFromFolderCommand}" ToolTip="{l:T 'Envoie les images de modpage/images/gallery absentes du site, titres pris dans modpage/README.md', 'Uploads the images of modpage/images/gallery missing on the site, with titles taken from modpage/README.md'}">
+                                    <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource Glyph}" Text="&#xE8B5;" Margin="0,0,8,0"/><TextBlock Text="{l:T 'Ajouter celles de images/gallery qui manquent', 'Add the missing ones from images/gallery'}"/></StackPanel>
+                                </Button>
+                                <Border Style="{StaticResource Separator}"/>
+                                <TextBlock Text="{l:T 'Ajouter sur', 'Add to'}" VerticalAlignment="Center" Margin="4,0,10,0"/>
+                                <CheckBox Content="Modrinth" IsChecked="{Binding ToModrinth}" MinWidth="0" Margin="0,0,12,0"/>
+                                <CheckBox Content="CurseForge" IsChecked="{Binding ToCurseForge}" MinWidth="0"/>
+                            </WrapPanel>
+                        </Border>
+                        <!-- Une colonne par site -->
+                        <Grid Grid.Row="1">
+                            <Grid.Resources>
+                                <DataTemplate x:Key="GalleryThumb">
+                                    <StackPanel Width="232">
+                                        <Border CornerRadius="8" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" Background="{DynamicResource SubtleFillColorSecondaryBrush}">
+                                            <Image Height="130" Stretch="UniformToFill">
+                                                <Image.Clip>
+                                                    <RectangleGeometry Rect="0,0,230,130" RadiusX="7" RadiusY="7"/>
+                                                </Image.Clip>
+                                                <Image.Source>
+                                                    <BitmapImage UriSource="{Binding Url}" DecodePixelWidth="460"/>
+                                                </Image.Source>
+                                            </Image>
+                                        </Border>
+                                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" Margin="2,8,0,0"/>
+                                        <TextBlock FontSize="11.5" Style="{StaticResource Muted}" Margin="2,0,0,0"><Run Text="{Binding Description, Mode=OneWay}"/></TextBlock>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </Grid.Resources>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <DockPanel Grid.Column="0">
+                                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="4,0,0,8">
+                                    <Ellipse Width="8" Height="8" Fill="#1BD96A" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    <TextBlock Text="Modrinth" Style="{StaticResource SectionTitle}" Margin="0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding ModrinthStatus}" Style="{StaticResource Muted}" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <ListBox ItemsSource="{Binding ModrinthItems}" SelectedItem="{Binding SelectedModrinth}" ItemTemplate="{StaticResource GalleryThumb}"
+                                         Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                    <ListBox.ItemsPanel>
+                                        <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
+                                    </ListBox.ItemsPanel>
+                                    <ListBox.ItemContainerStyle>
+                                        <Style TargetType="ListBoxItem" BasedOn="{StaticResource DefaultListBoxItemStyle}">
+                                            <Setter Property="Padding" Value="8"/>
+                                            <Setter Property="Margin" Value="0,0,8,8"/>
+                                        </Style>
+                                    </ListBox.ItemContainerStyle>
+                                </ListBox>
+                            </DockPanel>
+                            <Border Grid.Column="1" Width="1" Margin="10,0" Background="{DynamicResource DividerStrokeColorDefaultBrush}"/>
+                            <DockPanel Grid.Column="2">
+                                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="4,0,0,8">
+                                    <Ellipse Width="8" Height="8" Fill="#F16436" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    <TextBlock Text="CurseForge" Style="{StaticResource SectionTitle}" Margin="0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding CurseForgeStatus}" Style="{StaticResource Muted}" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <ListBox ItemsSource="{Binding CurseForgeItems}" SelectedItem="{Binding SelectedCurseForge}" ItemTemplate="{StaticResource GalleryThumb}"
+                                         Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                    <ListBox.ItemsPanel>
+                                        <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
+                                    </ListBox.ItemsPanel>
+                                    <ListBox.ItemContainerStyle>
+                                        <Style TargetType="ListBoxItem" BasedOn="{StaticResource DefaultListBoxItemStyle}">
+                                            <Setter Property="Padding" Value="8"/>
+                                            <Setter Property="Margin" Value="0,0,8,8"/>
+                                        </Style>
+                                    </ListBox.ItemContainerStyle>
+                                </ListBox>
+                            </DockPanel>
+                        </Grid>
+                        <Border Grid.Row="1" Grid.Column="2" Style="{StaticResource Card}" VerticalAlignment="Top" DataContext="{Binding Selected}">
+                            <StackPanel>
+                                <TextBlock Text="{l:T 'Image sélectionnée', 'Selected image'}" Style="{StaticResource SectionTitle}"/>
+                                <TextBlock Text="{l:T 'Titre', 'Title'}" Style="{StaticResource Label}" Margin="0,0,0,4"/>
+                                <TextBox Text="{Binding Title}"/>
+                                <TextBlock Text="Description" Style="{StaticResource Label}"/>
+                                <TextBox Text="{Binding Description}" AcceptsReturn="True" TextWrapping="Wrap" Height="80" VerticalContentAlignment="Top"/>
+                                <TextBlock Text="{l:T 'Ordre', 'Order'}" Style="{StaticResource Label}"/>
+                                <TextBox Text="{Binding Ordering}"/>
+                                <CheckBox Content="{l:T 'Mise en avant (Modrinth)', 'Featured (Modrinth)'}" IsChecked="{Binding Featured}" Margin="0,10"/>
+                                <WrapPanel DataContext="{Binding DataContext, RelativeSource={RelativeSource AncestorType=Grid}}">
+                                    <Button Command="{Binding SaveSelectedCommand}" Style="{StaticResource Accent}">
+                                        <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource Glyph}" Text="&#xE74E;" Margin="0,0,8,0"/><TextBlock Text="{l:T 'Enregistrer', 'Save'}"/></StackPanel>
+                                    </Button>
+                                    <Button Command="{Binding DeleteSelectedCommand}">
+                                        <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource Glyph}" Text="&#xE74D;" Margin="0,0,8,0"/><TextBlock Text="{l:T 'Supprimer', 'Delete'}"/></StackPanel>
+                                    </Button>
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </TabItem>
+
+                <!-- ===== Réglages du mod ===== -->
+                <TabItem Header="{l:T 'Réglages', 'Settings'}" Tag="reglages">
+                    <ScrollViewer IsEnabled="{Binding DataContext.Busy, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource InverseBool}}" VerticalScrollBarVisibility="Auto" DataContext="{Binding Settings}">
+                        <StackPanel Margin="8,12,8,8" MaxWidth="960" HorizontalAlignment="Left">
+                            <TextBlock Text="{Binding Info}" Style="{StaticResource Muted}" Margin="2,0,0,12"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="12"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <Border Style="{StaticResource Card}">
+                                        <StackPanel>
+                                            <TextBlock Text="{l:T 'Projets', 'Projects'}" Style="{StaticResource SectionTitle}"/>
+                                            <DockPanel Margin="0,0,0,4">
+                                                <Ellipse Style="{StaticResource Dot}" Fill="{StaticResource ModrinthBrush}"/>
+                                                <TextBlock Text="{l:T 'Modrinth : slug ou ID du projet (modrinth.com/mod/…)', 'Modrinth: project slug or ID (modrinth.com/mod/…)'}" Style="{StaticResource Label}" Margin="0"/>
+                                            </DockPanel>
+                                            <TextBox Text="{Binding ModrinthProject}"/>
+                                            <DockPanel Margin="0,10,0,4">
+                                                <Ellipse Style="{StaticResource Dot}" Fill="{StaticResource CurseForgeBrush}"/>
+                                                <TextBlock Text="{l:T 'CurseForge : ID numérique (encadré « About Project »)', 'CurseForge: numeric ID (“About Project” box)'}" Style="{StaticResource Label}" Margin="0"/>
+                                            </DockPanel>
+                                            <TextBox Text="{Binding CurseForgeProjectId}"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Style="{StaticResource Card}">
+                                        <StackPanel>
+                                            <TextBlock Text="{l:T 'Dépendances', 'Dependencies'}" Style="{StaticResource SectionTitle}"/>
+                                            <TextBlock Text="{l:T 'Modrinth : id_du_projet:type (required, optional, incompatible, embedded) — Fabric API = P7dR8mSH', 'Modrinth: project_id:type (required, optional, incompatible, embedded) — Fabric API = P7dR8mSH'}" Style="{StaticResource Label}" Margin="0,0,0,4"/>
+                                            <TextBox Text="{Binding ModrinthDependencies}"/>
+                                            <TextBlock Text="{l:T 'CurseForge : slug:type (requiredDependency, optionalDependency, incompatible, embeddedLibrary)', 'CurseForge: slug:type (requiredDependency, optionalDependency, incompatible, embeddedLibrary)'}" Style="{StaticResource Label}"/>
+                                            <TextBox Text="{Binding CurseForgeRelations}"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Style="{StaticResource Card}">
+                                        <StackPanel>
+                                            <TextBlock Text="{l:T 'Liens (envoyés avec la page)', 'Links (sent with the page)'}" Style="{StaticResource SectionTitle}"/>
+                                            <TextBlock Text="{l:T 'Code source', 'Source code'}" Style="{StaticResource Label}" Margin="0,0,0,4"/>
+                                            <TextBox Text="{Binding SourceUrl}"/>
+                                            <TextBlock Text="{l:T 'Signaler un problème', 'Issue tracker'}" Style="{StaticResource Label}"/>
+                                            <TextBox Text="{Binding IssuesUrl}"/>
+                                            <TextBlock Text="Wiki" Style="{StaticResource Label}"/>
+                                            <TextBox Text="{Binding WikiUrl}"/>
+                                            <TextBlock Text="Discord" Style="{StaticResource Label}"/>
+                                            <TextBox Text="{Binding DiscordUrl}"/>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+                                <Border Grid.Column="2" Style="{StaticResource Card}" VerticalAlignment="Top">
+                                    <StackPanel>
+                                        <TextBlock Text="Versions" Style="{StaticResource SectionTitle}"/>
+                                        <TextBlock Text="{l:T 'Versions de Minecraft (séparées par des virgules)', 'Minecraft versions (separated by commas)'}" Style="{StaticResource Label}" Margin="0,0,0,4"/>
+                                        <TextBox Text="{Binding GameVersions}"/>
+                                        <TextBlock Text="Loaders (fabric, neoforge, forge, quilt)" Style="{StaticResource Label}"/>
+                                        <TextBox Text="{Binding Loaders}"/>
+                                        <TextBlock Text="{l:T 'CurseForge : environnements (Client, Server)', 'CurseForge: environments (Client, Server)'}" Style="{StaticResource Label}"/>
+                                        <TextBox Text="{Binding Environments}"/>
+                                        <TextBlock Text="{l:T 'CurseForge : versions de Java (ex. Java 25)', 'CurseForge: Java versions (e.g. Java 25)'}" Style="{StaticResource Label}"/>
+                                        <TextBox Text="{Binding JavaVersions}"/>
+                                        <TextBlock Text="{l:T 'Type par défaut', 'Default type'}" Style="{StaticResource Label}"/>
+                                        <ComboBox ItemsSource="{x:Static vm:SettingsViewModel.ReleaseTypes}" SelectedItem="{Binding ReleaseType}" Width="140" HorizontalAlignment="Left"/>
+                                        <TextBlock Text="{l:T 'Nom affiché ({name}, {version})', 'Display name ({name}, {version})'}" Style="{StaticResource Label}"/>
+                                        <TextBox Text="{Binding VersionName}"/>
+                                        <TextBlock Text="{l:T 'Jar (vide = build/libs/&lt;nom&gt;-{version}.jar)', 'Jar (empty = build/libs/&lt;name&gt;-{version}.jar)'}" Style="{StaticResource Label}"/>
+                                        <TextBox Text="{Binding Jar}"/>
+                                        <TextBlock Text="{l:T 'Changelog (relatif au dossier du mod)', 'Changelog (relative to the mod folder)'}" Style="{StaticResource Label}"/>
+                                        <TextBox Text="{Binding Changelog}"/>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                            <Button Command="{Binding SaveCommand}" Style="{StaticResource Accent}" HorizontalAlignment="Left">
+                                <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource Glyph}" Text="&#xE74E;" Margin="0,0,8,0"/><TextBlock Text="{l:T 'Enregistrer les réglages', 'Save settings'}"/></StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
+
+                <!-- ===== Comptes ===== -->
+                <TabItem Header="{l:T 'Comptes', 'Accounts'}" Tag="comptes">
+                    <ScrollViewer IsEnabled="{Binding DataContext.Busy, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource InverseBool}}" VerticalScrollBarVisibility="Auto" DataContext="{Binding Accounts}">
+                        <StackPanel Margin="8,12,8,8" MaxWidth="820" HorizontalAlignment="Left">
+                            <Border Style="{StaticResource Card}">
+                                <DockPanel>
+                                    <Border Style="{StaticResource BrandBar}" Background="{StaticResource ModrinthBrush}"/>
+                                    <StackPanel>
+                                        <TextBlock Text="Modrinth" Style="{StaticResource SectionTitle}" Margin="0,0,0,4"/>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                            <Ellipse Style="{StaticResource Dot}" Fill="{Binding ModrinthOk, Converter={StaticResource BoolBrush}}"/>
+                                            <TextBlock Text="{Binding ModrinthState}" Style="{StaticResource Muted}"/>
+                                        </StackPanel>
+                                        <WrapPanel>
+                                            <Button Content="{l:T 'Se connecter', 'Sign in'}" Command="{Binding LoginModrinthCommand}" Style="{StaticResource Accent}"/>
+                                            <Button Content="{l:T 'Se déconnecter', 'Sign out'}" Command="{Binding LogoutModrinthCommand}"/>
+                                        </WrapPanel>
+                                        <TextBlock Text="{l:T 'Ou un Personal Access Token (modrinth.com › Settings › PATs : Create versions, Write versions, Write projects, Read projects)', 'Or a Personal Access Token (modrinth.com › Settings › PATs: Create versions, Write versions, Write projects, Read projects)'}" Style="{StaticResource Label}"/>
+                                        <DockPanel>
+                                            <Button DockPanel.Dock="Right" Content="{l:T 'Enregistrer', 'Save'}" Command="{Binding SaveModrinthPatCommand}" Margin="8,0,0,0"/>
+                                            <TextBox Text="{Binding ModrinthPat}"/>
+                                        </DockPanel>
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                            <Border Style="{StaticResource Card}">
+                                <DockPanel>
+                                    <Border Style="{StaticResource BrandBar}" Background="{StaticResource CurseForgeBrush}"/>
+                                    <StackPanel>
+                                        <TextBlock Text="CurseForge" Style="{StaticResource SectionTitle}" Margin="0,0,0,4"/>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                            <Ellipse Style="{StaticResource Dot}" Fill="{Binding CurseForgeOk, Converter={StaticResource BoolBrush}}"/>
+                                            <TextBlock Text="{Binding CurseForgeState}" Style="{StaticResource Muted}"/>
+                                        </StackPanel>
+                                        <WrapPanel>
+                                            <Button Content="{l:T 'Se connecter', 'Sign in'}" Command="{Binding LoginCurseForgeCommand}" Style="{StaticResource Accent}"/>
+                                            <Button Content="{l:T 'Se déconnecter', 'Sign out'}" Command="{Binding LogoutCurseForgeCommand}"/>
+                                        </WrapPanel>
+                                        <TextBlock Text="{l:T 'Jeton d\'upload (pour envoyer les fichiers) — authors.curseforge.com › compte › API Tokens', 'Upload token (to send files) — authors.curseforge.com › account › API Tokens'}" Style="{StaticResource Label}"/>
+                                        <TextBlock Text="{Binding CurseForgeUploadState}" Margin="0,0,0,6"/>
+                                        <DockPanel>
+                                            <Button DockPanel.Dock="Right" Content="{l:T 'Enregistrer', 'Save'}" Command="{Binding SaveCurseForgeUploadTokenCommand}" Margin="8,0,0,0"/>
+                                            <Button DockPanel.Dock="Right" Content="{l:T 'Ouvrir la page des jetons', 'Open the tokens page'}" Command="{Binding OpenCurseForgeTokensCommand}" Margin="8,0,0,0"/>
+                                            <TextBox Text="{Binding CurseForgeUploadToken}"/>
+                                        </DockPanel>
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Style="{StaticResource Glyph}" Text="&#xE90F;" FontSize="16" Margin="0,0,10,10"/>
+                                        <TextBlock Text="{l:T 'Mise au point', 'Debugging'}" Style="{StaticResource SectionTitle}"/>
+                                    </StackPanel>
+                                    <TextBlock Style="{StaticResource Muted}" Text="{l:T 'Ouvre authors.curseforge.com et note les appels d\'API que fait le site pendant que tu t\'en sers (sans cookies ni mots de passe), pour brancher l\'API interne de CurseForge.', 'Opens authors.curseforge.com and records the API calls the site makes while you use it (no cookies or passwords), to plug in CurseForge\'s internal API.'}"/>
+                                    <TextBlock Text="{Binding NetLogPath}" Style="{StaticResource Muted}" FontFamily="Cascadia Mono, Consolas" FontSize="12" Margin="0,6,0,12"/>
+                                    <WrapPanel>
+                                        <Button Command="{Binding RecordCurseForgeCommand}">
+                                            <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource Glyph}" Text="&#xE7C8;" Foreground="#EF4444" Margin="0,0,8,0"/><TextBlock Text="{l:T 'Enregistrer les appels du site CurseForge', 'Record the CurseForge site calls'}"/></StackPanel>
+                                        </Button>
+                                        <Button Command="{Binding RefreshCommand}">
+                                            <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource Glyph}" Text="&#xE72C;" Margin="0,0,8,0"/><TextBlock Text="{l:T 'Revérifier les comptes', 'Check accounts again'}"/></StackPanel>
+                                        </Button>
+                                    </WrapPanel>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
+            </TabControl>
+
+            <!-- ===== Journal ===== -->
+            <Border Grid.Row="4" Margin="24,4,20,14" Style="{StaticResource Card}" Padding="12,6">
+                <Expander x:Name="JournalPanel" IsExpanded="False" Padding="0">
+                    <Expander.Header>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Style="{StaticResource Glyph}" Text="&#xE9D9;" Margin="0,0,10,0"/>
+                            <TextBlock Text="{l:T 'Journal', 'Log'}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            <TextBlock Text="  ·  " Style="{StaticResource Muted}" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding Status}" Style="{StaticResource Muted}" VerticalAlignment="Center" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
+                        </StackPanel>
+                    </Expander.Header>
+                    <DockPanel Margin="0,8,0,4">
+                        <Button DockPanel.Dock="Right" Command="{Binding ClearJournalCommand}" Style="{StaticResource Subtle}" VerticalAlignment="Top" Margin="8,0,0,0" ToolTip="{l:T 'Effacer le journal', 'Clear the log'}">
+                            <TextBlock Style="{StaticResource Glyph}" Text="&#xE894;"/>
+                        </Button>
+                        <TextBox x:Name="JournalBox" Text="{Binding Journal, Mode=OneWay}" IsReadOnly="True" Height="130" Style="{StaticResource Code}" FontSize="12"
+                                 TextChanged="Journal_TextChanged"/>
+                    </DockPanel>
+                </Expander>
+            </Border>
+        </Grid>
+    </Grid>
+</Window>

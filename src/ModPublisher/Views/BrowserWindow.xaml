@@ -1,0 +1,20 @@
+<Window x:Class="ModPublisher.Views.BrowserWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:l="clr-namespace:ModPublisher.Services"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+        Title="{l:T 'Connexion', 'Sign in'}" Width="1100" Height="800" WindowStartupLocation="CenterOwner">
+    <DockPanel>
+        <Border DockPanel.Dock="Top" Padding="8" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}" BorderThickness="0,0,0,1">
+            <DockPanel>
+                <Button x:Name="DoneButton" DockPanel.Dock="Right" Content="{l:T 'Terminé', 'Done'}" Click="Done_Click" Style="{DynamicResource AccentButtonStyle}" Margin="8,0,0,0"/>
+                <ToggleButton x:Name="RecordButton" DockPanel.Dock="Right" Content="{l:T '● Enregistrer les appels d\'API', '● Record API calls'}" Visibility="Collapsed"
+                              Checked="Record_Changed" Unchecked="Record_Changed" Margin="8,0,0,0" Padding="10,4"/>
+                <Button DockPanel.Dock="Left" Content="←" Click="Back_Click" Width="32" Margin="0,0,8,0"/>
+                <TextBlock x:Name="Hint" DockPanel.Dock="Bottom" Margin="0,6,0,0" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
+                <TextBox x:Name="Address" IsReadOnly="True" VerticalContentAlignment="Center" Padding="6,3"/>
+            </DockPanel>
+        </Border>
+        <wv2:WebView2 x:Name="Web"/>
+    </DockPanel>
+</Window>
