@@ -1,7 +1,7 @@
 <p align="center"><img src="src/ModPublisher/Assets/app.png" width="96" alt="Icône de ModPublisher"></p>
 <h1 align="center">ModPublisher</h1>
 <p align="center">Déploie les mises à jour de tes mods Minecraft sur <b>Modrinth</b> et <b>CurseForge</b> depuis une seule fenêtre.</p>
-<p align="center"><a href="README.md">English</a> · <b>Français</b> · <a href="https://github.com/polo5922/ModPublisher/releases/latest"><b>Télécharger pour Windows</b></a></p>
+<p align="center"><a href="README.md">English</a> · <b>Français</b> · <a href="https://github.com/polo5922/ModPublisher/releases/latest"><b>Télécharger pour Windows</b></a> · <a href="https://paul-barbaux.dev/marketplace/modpublisher"><b>Marketplace</b></a></p>
 
 ![Onglet Page](docs/images/fr/1-page.png)
 
