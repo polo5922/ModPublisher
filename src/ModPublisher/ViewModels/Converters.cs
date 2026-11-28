@@ -43,7 +43,7 @@ public sealed class BoolBrushConverter : IValueConverter
 public sealed class NullToVisConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture) =>
-        (value is null || value as string == "") ^ (parameter as string == "invert") ? Visibility.Collapsed : Visibility.Visible;
+        (value is null || value as string == "" || value is 0) ^ (parameter as string == "invert") ? Visibility.Collapsed : Visibility.Visible;
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotSupportedException();
 }
 
@@ -59,6 +59,7 @@ public sealed class TabGlyph : IValueConverter
         "galerie" => "\uEB9F",
         "reglages" => "\uE713",
         "comptes" => "\uE77B",
+        "stats" => "\uE9D2",
         _ => "",
     };
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotSupportedException();

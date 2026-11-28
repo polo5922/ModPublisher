@@ -18,6 +18,7 @@
 - **Build included**: runs `gradlew build`, finds the jar, reads the version from `gradle.properties` and the matching section of your changelog.
 - **Edit published versions**: changelog, type, Minecraft versions, featured.
 - **Gallery and icon**: add, rename or delete images on each site; send the mod icon.
+- **Stats**: downloads per site, per version and per Minecraft version, followers, release dates, and a table of every project on your accounts.
 - **Safe**: every write asks for confirmation, online text is backed up before it is replaced, and *Simulation mode* shows the requests without sending them.
 - **Automatic language and theme**: French on a French Windows, English everywhere else; light or dark like Windows.
 
@@ -32,7 +33,7 @@ Requires 64-bit Windows 10 (1809) or 11, with the [WebView2 runtime](https://dev
 
 ### 1. Sign in (Accounts tab)
 
-![Accounts tab](docs/images/en/5-comptes.png)
+![Accounts tab](docs/images/en/6-comptes.png)
 
 | Site | What you need | Used for |
 |---|---|---|
@@ -44,7 +45,7 @@ Requires 64-bit Windows 10 (1809) or 11, with the [WebView2 runtime](https://dev
 
 Click **Add a mod** and choose the mod folder (the one with `gradle.properties`). Then fill in the Modrinth slug and the numeric CurseForge ID of your **existing** projects, the Minecraft versions, loaders and dependencies.
 
-![Settings tab](docs/images/en/4-reglages.png)
+![Settings tab](docs/images/en/5-reglages.png)
 
 ### 3. Publish an update (Versions tab)
 
@@ -67,9 +68,15 @@ Each site has its own list. **Add the missing ones** sends the images of `modpag
 
 ![Gallery tab](docs/images/en/3-galerie.png)
 
+### 6. Follow your downloads (Stats tab)
+
+Click **Refresh** to read the numbers of the selected mod on both sites: total and share per site, followers, downloads per version and per Minecraft version (green = Modrinth, orange = CurseForge). The bottom table lists every project on your accounts; double-click one to open its page. Read only, nothing is sent.
+
+![Stats tab](docs/images/en/4-stats.png)
+
 ### Dark theme
 
-![Dark theme](docs/images/en/6-dark.png)
+![Dark theme](docs/images/en/7-dark.png)
 
 ## Files in your mod
 

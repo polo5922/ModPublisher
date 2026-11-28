@@ -10,6 +10,8 @@ public record CfProjectInfo(string Description, string Summary, Dictionary<strin
 public record CfFile(long Id, string DisplayName, string FileName, string ReleaseType, List<string> GameVersions,
     DateTime Date, long Downloads, string? Changelog);
 
+public record CfProjectSummary(long Id, string Name, string Slug, long Downloads, DateTime Created, DateTime? LastRelease);
+
 public record CfImage(long Id, string Url, string Title, string Description);
 
 /// <summary>
@@ -41,6 +43,17 @@ public sealed class CurseForgeAuthors(CurseForgeSite site)
         if (name is not null) await Site.SaveSessionAsync();
         return name;
     }
+
+    /// <summary>Projets du compte, avec leurs téléchargements (la liste « Projects » du site).</summary>
+    public async Task<List<CfProjectSummary>> GetMyProjectsAsync()
+    {
+        var list = await Get($"/projects?filter={{}}&range={Uri.EscapeDataString("[0,99]")}&sort={Uri.EscapeDataString("[\"name\",\"ASC\"]")}");
+        return (list as JsonArray ?? new()).OfType<JsonObject>().Select(p => new CfProjectSummary(
+            (long?)p["id"] ?? 0, (string?)p["name"] ?? "", (string?)p["slug"] ?? "", (long?)p["totalDownloads"] ?? 0,
+            Date(p["creationDate"]) ?? DateTime.MinValue, Date(p["dateLastReleasedFile"]))).ToList();
+    }
+
+    private static DateTime? Date(JsonNode? node) => DateTime.TryParse((string?)node, out var d) ? d.ToLocalTime() : null;
 
     // ---------- Page du projet ----------
 

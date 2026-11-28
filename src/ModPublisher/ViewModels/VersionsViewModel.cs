@@ -133,7 +133,7 @@ public sealed partial class VersionsViewModel(MainViewModel main) : ObservableOb
     }
 
     /// <summary>CurseForge n'a pas de numéro de version : on le retrouve dans le nom affiché ou le nom du jar.</summary>
-    private static string GuessNumber(CfFile f, IEnumerable<string> known)
+    internal static string GuessNumber(CfFile f, IEnumerable<string> known)
     {
         foreach (var n in known.OrderByDescending(n => n.Length))
             if (f.DisplayName.Contains(n) || f.FileName.Contains(n)) return n;

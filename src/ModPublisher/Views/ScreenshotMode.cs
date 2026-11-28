@@ -107,5 +107,23 @@ public static class ScreenshotMode
         vm.Gallery.ModrinthStatus = $"{vm.Gallery.ModrinthItems.Count} images";
         vm.Gallery.CurseForgeStatus = $"{vm.Gallery.CurseForgeItems.Count} images";
         vm.Gallery.SelectedModrinth = vm.Gallery.ModrinthItems.FirstOrDefault();
+
+        // Statistiques : mêmes versions, partagées entre les deux sites
+        var mr = versions.Select(v => new SiteVersion(v.Number, start.AddDays(-v.Days), v.Downloads * 3 / 5, v.Number == "1.0.0" ? ["26.2", "26.3"] : ["26.3"])).ToList();
+        var cf = versions.Where(v => v.Type != "beta").Select(v => new SiteVersion(v.Number, start.AddDays(-v.Days), v.Downloads * 2 / 5, v.Number == "1.0.0" ? ["26.2"] : ["26.3"])).ToList();
+        vm.Stats.ModrinthDownloads = mr.Sum(v => v.Downloads);
+        vm.Stats.CurseForgeDownloads = cf.Sum(v => v.Downloads);
+        vm.Stats.Followers = 412;
+        vm.Stats.ModrinthStatus = $"{mr.Count} versions";
+        vm.Stats.CurseForgeStatus = L.T($"{cf.Count} fichiers", $"{cf.Count} files");
+        vm.Stats.Show(mr, cf, start.AddDays(-96));
+        vm.Stats.Updated = L.T("Mis à jour à 14:05", "Updated at 2:05 PM");
+        vm.Stats.ShowAccount([
+            new("Crystal Caves", "Modrinth", vm.Stats.ModrinthDownloads, 412, start.AddDays(-96), start.AddDays(-6), "", true),
+            new("Crystal Caves", "CurseForge", vm.Stats.CurseForgeDownloads, null, start.AddDays(-95), start.AddDays(-6), "", true),
+            new("Lantern Lane", "Modrinth", 8420, 133, start.AddDays(-300), start.AddDays(-40), "", false),
+            new("Lantern Lane", "CurseForge", 5130, null, start.AddDays(-298), start.AddDays(-40), "", false),
+            new("Tiny Tide", "Modrinth", 1275, 38, start.AddDays(-150), start.AddDays(-90), "", false),
+        ]);
     }
 }

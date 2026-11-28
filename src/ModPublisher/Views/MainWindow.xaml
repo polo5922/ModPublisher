@@ -607,6 +607,225 @@
                     </Grid>
                 </TabItem>
 
+                <!-- ===== Statistiques ===== -->
+                <TabItem Header="Stats" Tag="stats">
+                    <Grid IsEnabled="{Binding DataContext.Busy, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource InverseBool}}" Margin="8,12,8,8" DataContext="{Binding Stats}">
+                        <Grid.Resources>
+                            <!-- Chiffre clé -->
+                            <Style x:Key="Kpi" TargetType="Border" BasedOn="{StaticResource Card}">
+                                <Setter Property="Margin" Value="0,0,12,12"/>
+                                <Setter Property="Padding" Value="16,12"/>
+                            </Style>
+                            <Style x:Key="KpiValue" TargetType="TextBlock">
+                                <Setter Property="FontSize" Value="26"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                <Setter Property="Margin" Value="0,4,0,0"/>
+                            </Style>
+                            <!-- Barre horizontale : Modrinth puis CurseForge, le reste vide -->
+                            <DataTemplate x:Key="StatBarRow">
+                                <Grid Margin="0,3" ToolTip="{Binding Tooltip}" Background="Transparent">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="120"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="80"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Label}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Text="{Binding Detail}" Style="{StaticResource Caption}" FontWeight="Normal"
+                                                   Visibility="{Binding Detail, Converter={StaticResource NullToVis}}"/>
+                                    </StackPanel>
+                                    <Grid Grid.Column="1" Height="14" Margin="8,0" VerticalAlignment="Center">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="{Binding ModrinthWidth}"/>
+                                            <ColumnDefinition Width="{Binding CurseForgeWidth}"/>
+                                            <ColumnDefinition Width="{Binding RestWidth}"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Border Grid.ColumnSpan="3" CornerRadius="4" Background="{DynamicResource SubtleFillColorSecondaryBrush}"/>
+                                        <Border Grid.Column="0" CornerRadius="4,0,0,4" Background="{StaticResource ModrinthBrush}"/>
+                                        <Border Grid.Column="1" CornerRadius="0,4,4,0" Background="{StaticResource CurseForgeBrush}"/>
+                                    </Grid>
+                                    <TextBlock Grid.Column="2" Text="{Binding Total, StringFormat=N0}" HorizontalAlignment="Right" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                </Grid>
+                            </DataTemplate>
+                        </Grid.Resources>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <Border Style="{StaticResource Toolbar}">
+                            <DockPanel>
+                                <Button Command="{Binding RefreshCommand}" Margin="0,0,0,6">
+                                    <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource Glyph}" Text="&#xE72C;" Margin="0,0,8,0"/><TextBlock Text="{l:T 'Actualiser', 'Refresh'}"/></StackPanel>
+                                </Button>
+                                <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Center" Margin="0,0,12,6">
+                                    <Ellipse Style="{StaticResource Dot}" Fill="{StaticResource ModrinthBrush}"/>
+                                    <TextBlock Text="Modrinth" Margin="0,0,14,0"/>
+                                    <Ellipse Style="{StaticResource Dot}" Fill="{StaticResource CurseForgeBrush}"/>
+                                    <TextBlock Text="CurseForge"/>
+                                </StackPanel>
+                                <TextBlock Text="{Binding Updated}" Style="{StaticResource Muted}" VerticalAlignment="Center" Margin="12,0,0,6"/>
+                            </DockPanel>
+                        </Border>
+
+                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="0,0,4,0">
+                            <StackPanel>
+                                <!-- Chiffres clés du mod -->
+                                <UniformGrid Columns="6" Margin="0,0,-12,0">
+                                    <Border Style="{StaticResource Kpi}">
+                                        <StackPanel>
+                                            <TextBlock Text="{l:T 'Téléchargements', 'Downloads'}" Style="{StaticResource Caption}"/>
+                                            <TextBlock Text="{Binding TotalDownloads, StringFormat=N0}" Style="{StaticResource KpiValue}"/>
+                                            <TextBlock Text="{l:T 'les deux sites', 'both sites'}" Style="{StaticResource Muted}" FontSize="12"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Style="{StaticResource Kpi}">
+                                        <DockPanel>
+                                            <Border Style="{StaticResource BrandBar}" Background="{StaticResource ModrinthBrush}"/>
+                                            <StackPanel>
+                                                <TextBlock Text="Modrinth" Style="{StaticResource Caption}"/>
+                                                <TextBlock Text="{Binding ModrinthDownloads, StringFormat=N0}" Style="{StaticResource KpiValue}"/>
+                                                <TextBlock Text="{Binding ModrinthStatus}" Style="{StaticResource Muted}" FontSize="12" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
+                                            </StackPanel>
+                                        </DockPanel>
+                                    </Border>
+                                    <Border Style="{StaticResource Kpi}">
+                                        <DockPanel>
+                                            <Border Style="{StaticResource BrandBar}" Background="{StaticResource CurseForgeBrush}"/>
+                                            <StackPanel>
+                                                <TextBlock Text="CurseForge" Style="{StaticResource Caption}"/>
+                                                <TextBlock Text="{Binding CurseForgeDownloads, StringFormat=N0}" Style="{StaticResource KpiValue}"/>
+                                                <TextBlock Text="{Binding CurseForgeStatus}" Style="{StaticResource Muted}" FontSize="12" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
+                                            </StackPanel>
+                                        </DockPanel>
+                                    </Border>
+                                    <Border Style="{StaticResource Kpi}">
+                                        <StackPanel>
+                                            <TextBlock Text="{l:T 'Abonnés', 'Followers'}" Style="{StaticResource Caption}"/>
+                                            <TextBlock Text="{Binding Followers, StringFormat=N0}" Style="{StaticResource KpiValue}"/>
+                                            <TextBlock Text="Modrinth" Style="{StaticResource Muted}" FontSize="12"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Style="{StaticResource Kpi}">
+                                        <StackPanel>
+                                            <TextBlock Text="Versions" Style="{StaticResource Caption}"/>
+                                            <TextBlock Text="{Binding VersionCount}" Style="{StaticResource KpiValue}"/>
+                                            <TextBlock Style="{StaticResource Muted}" FontSize="12"><Run Text="{l:T 'dernière le', 'latest on'}"/> <Run Text="{Binding LastRelease, Mode=OneWay}"/></TextBlock>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Style="{StaticResource Kpi}">
+                                        <StackPanel>
+                                            <TextBlock Text="{l:T 'En ligne depuis', 'Online since'}" Style="{StaticResource Caption}"/>
+                                            <TextBlock Text="{Binding Created}" Style="{StaticResource KpiValue}"/>
+                                            <TextBlock Text="{l:T 'premier site', 'first site'}" Style="{StaticResource Muted}" FontSize="12"/>
+                                        </StackPanel>
+                                    </Border>
+                                </UniformGrid>
+
+                                <!-- Répartition entre les sites -->
+                                <Border Style="{StaticResource Card}">
+                                    <StackPanel>
+                                        <TextBlock Text="{l:T 'Répartition entre les sites', 'Split between the sites'}" Style="{StaticResource SectionTitle}"/>
+                                        <Grid Height="18">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="{Binding ModrinthShareWidth}"/>
+                                                <ColumnDefinition Width="{Binding CurseForgeShareWidth}"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Border CornerRadius="5,0,0,5" Background="{StaticResource ModrinthBrush}"/>
+                                            <Border Grid.Column="1" CornerRadius="0,5,5,0" Background="{StaticResource CurseForgeBrush}"/>
+                                        </Grid>
+                                        <DockPanel Margin="0,6,0,0">
+                                            <TextBlock DockPanel.Dock="Right" Text="{Binding CurseForgeShare}" FontWeight="SemiBold"/>
+                                            <TextBlock Text="{Binding ModrinthShare}" FontWeight="SemiBold"/>
+                                        </DockPanel>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Graphiques -->
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="3*"/>
+                                        <ColumnDefinition Width="12"/>
+                                        <ColumnDefinition Width="2*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Border Style="{StaticResource Card}">
+                                        <StackPanel>
+                                            <TextBlock Text="{l:T 'Téléchargements par version', 'Downloads per version'}" Style="{StaticResource SectionTitle}"/>
+                                            <ItemsControl ItemsSource="{Binding ByVersion}" ItemTemplate="{StaticResource StatBarRow}"/>
+                                            <TextBlock Text="{l:T 'Aucune version lue. Clique Actualiser.', 'No versions read yet. Click Refresh.'}" Style="{StaticResource Muted}"
+                                                       Visibility="{Binding ByVersion.Count, Converter={StaticResource NullToVis}, ConverterParameter=invert}"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Grid.Column="2" Style="{StaticResource Card}" VerticalAlignment="Top">
+                                        <StackPanel>
+                                            <TextBlock Text="{l:T 'Par version de Minecraft', 'Per Minecraft version'}" Style="{StaticResource SectionTitle}"/>
+                                            <ItemsControl ItemsSource="{Binding ByGameVersion}" ItemTemplate="{StaticResource StatBarRow}"/>
+                                            <TextBlock Text="{l:T 'Un fichier compatible avec plusieurs versions est partagé à parts égales entre elles.', 'A file compatible with several versions is split equally between them.'}"
+                                                       Style="{StaticResource Muted}" FontSize="12" Margin="0,8,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+
+                                <!-- Tous les projets du compte -->
+                                <Border Style="{StaticResource Card}">
+                                    <StackPanel>
+                                        <DockPanel Margin="0,0,0,10">
+                                            <TextBlock Text="{Binding AccountStatus}" DockPanel.Dock="Right" Style="{StaticResource Muted}" VerticalAlignment="Center"/>
+                                            <TextBlock Text="{l:T 'Tous tes projets', 'All your projects'}" Style="{StaticResource SectionTitle}" Margin="0" VerticalAlignment="Center"/>
+                                        </DockPanel>
+                                        <WrapPanel Margin="0,0,0,8">
+                                            <Border Style="{StaticResource Pill}">
+                                                <TextBlock><Run Text="{l:T 'Total', 'Total'}"/> <Run Text="{Binding AccountDownloads, StringFormat=N0, Mode=OneWay}" FontWeight="SemiBold"/></TextBlock>
+                                            </Border>
+                                            <Border Style="{StaticResource Pill}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Ellipse Style="{StaticResource Dot}" Fill="{StaticResource ModrinthBrush}"/>
+                                                    <TextBlock><Run Text="Modrinth"/> <Run Text="{Binding AccountModrinth, StringFormat=N0, Mode=OneWay}" FontWeight="SemiBold"/></TextBlock>
+                                                </StackPanel>
+                                            </Border>
+                                            <Border Style="{StaticResource Pill}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Ellipse Style="{StaticResource Dot}" Fill="{StaticResource CurseForgeBrush}"/>
+                                                    <TextBlock><Run Text="CurseForge"/> <Run Text="{Binding AccountCurseForge, StringFormat=N0, Mode=OneWay}" FontWeight="SemiBold"/></TextBlock>
+                                                </StackPanel>
+                                            </Border>
+                                            <Border Style="{StaticResource Pill}">
+                                                <TextBlock><Run Text="{l:T 'Abonnés', 'Followers'}"/> <Run Text="{Binding AccountFollowers, StringFormat=N0, Mode=OneWay}" FontWeight="SemiBold"/></TextBlock>
+                                            </Border>
+                                        </WrapPanel>
+                                        <DataGrid ItemsSource="{Binding Projects}" SelectedItem="{Binding SelectedProject}" AutoGenerateColumns="False"
+                                                  IsReadOnly="True" HeadersVisibility="Column" SelectionMode="Single" GridLinesVisibility="None"
+                                                  Background="Transparent" BorderThickness="0" RowHeight="34" MaxHeight="420"
+                                                  ToolTip="{l:T 'Double-clic : ouvrir la page', 'Double-click: open the page'}">
+                                            <DataGrid.InputBindings>
+                                                <MouseBinding Gesture="LeftDoubleClick" Command="{Binding OpenProjectCommand}"/>
+                                            </DataGrid.InputBindings>
+                                            <DataGrid.Columns>
+                                                <DataGridTextColumn Header="{l:T 'Projet', 'Project'}" Binding="{Binding Name}" Width="*">
+                                                    <DataGridTextColumn.ElementStyle>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsCurrent}" Value="True">
+                                                                    <Setter Property="FontWeight" Value="Bold"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </DataGridTextColumn.ElementStyle>
+                                                </DataGridTextColumn>
+                                                <DataGridTextColumn Header="Site" Binding="{Binding Site}"/>
+                                                <DataGridTextColumn Header="{l:T 'Téléchargements', 'Downloads'}" Binding="{Binding Downloads, StringFormat=N0}"/>
+                                                <DataGridTextColumn Header="{l:T 'Abonnés', 'Followers'}" Binding="{Binding FollowersText}"/>
+                                                <DataGridTextColumn Header="{l:T 'Créé le', 'Created'}" Binding="{Binding Created, StringFormat=d}"/>
+                                                <DataGridTextColumn Header="{l:T 'Mis à jour', 'Updated'}" Binding="{Binding Updated, StringFormat=d}"/>
+                                            </DataGrid.Columns>
+                                        </DataGrid>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Grid>
+                </TabItem>
+
                 <!-- ===== Réglages du mod ===== -->
                 <TabItem Header="{l:T 'Réglages', 'Settings'}" Tag="reglages">
                     <ScrollViewer IsEnabled="{Binding DataContext.Busy, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource InverseBool}}" VerticalScrollBarVisibility="Auto" DataContext="{Binding Settings}">

@@ -9,7 +9,7 @@
     <!-- ThemeMode (thème Fluent de Windows 11) est encore marqué expérimental dans .NET 9 -->
     <NoWarn>$(NoWarn);WPF0001</NoWarn>
     <AssemblyTitle>ModPublisher</AssemblyTitle>
-    <Version>1.1.0</Version>
+    <Version>1.2.0</Version>
     <!-- Pas de chemins du PC de compilation dans la version publiée -->
     <DebugType Condition="'$(Configuration)' == 'Release'">none</DebugType>
     <PathMap>$(MSBuildProjectDirectory)=/_/</PathMap>

@@ -18,6 +18,7 @@
 - **Compilation comprise** : lance `gradlew build`, trouve le jar, lit la version dans `gradle.properties` et la bonne section du changelog.
 - **Versions publiées modifiables** : changelog, type, versions de Minecraft, mise en avant.
 - **Galerie et icône** : ajoute, renomme ou supprime les images de chaque site ; envoie l'icône du mod.
+- **Statistiques** : téléchargements par site, par version et par version de Minecraft, abonnés, dates de sortie, et un tableau de tous les projets de tes comptes.
 - **Prudent** : chaque écriture demande confirmation, le texte en ligne est sauvegardé avant d'être remplacé, et le *Mode simulation* montre les requêtes sans les envoyer.
 - **Langue et thème automatiques** : français si Windows est en français, anglais sinon ; clair ou sombre comme Windows.
 
@@ -32,7 +33,7 @@ Il faut Windows 10 (1809) ou 11 en 64 bits, avec le [runtime WebView2](https://d
 
 ### 1. Se connecter (onglet Comptes)
 
-![Onglet Comptes](docs/images/fr/5-comptes.png)
+![Onglet Comptes](docs/images/fr/6-comptes.png)
 
 | Site | Ce qu'il faut | Sert à |
 |---|---|---|
@@ -44,7 +45,7 @@ Il faut Windows 10 (1809) ou 11 en 64 bits, avec le [runtime WebView2](https://d
 
 Clique **Ajouter un mod** et choisis le dossier du mod (celui qui contient `gradle.properties`). Renseigne ensuite le slug Modrinth et l'ID numérique CurseForge de tes projets **existants**, les versions de Minecraft, les loaders et les dépendances.
 
-![Onglet Réglages](docs/images/fr/4-reglages.png)
+![Onglet Réglages](docs/images/fr/5-reglages.png)
 
 ### 3. Publier une mise à jour (onglet Versions)
 
@@ -67,9 +68,15 @@ Chaque site a sa propre liste. L'ajout des images manquantes envoie celles de `m
 
 ![Onglet Galerie](docs/images/fr/3-galerie.png)
 
+### 6. Suivre les téléchargements (onglet Stats)
+
+Clique **Actualiser** pour lire les chiffres du mod choisi sur les deux sites : total et part de chaque site, abonnés, téléchargements par version et par version de Minecraft (vert = Modrinth, orange = CurseForge). Le tableau du bas liste tous les projets de tes comptes ; double-clique sur l'un d'eux pour ouvrir sa page. Lecture seule, rien n'est envoyé.
+
+![Onglet Stats](docs/images/fr/4-stats.png)
+
 ### Thème sombre
 
-![Thème sombre](docs/images/fr/6-dark.png)
+![Thème sombre](docs/images/fr/7-dark.png)
 
 ## Fichiers dans le mod
 

@@ -27,6 +27,15 @@ public sealed class ModrinthClient(ApiHttp http, Func<string?> token)
     public async Task<string> GetUsernameAsync() =>
         (string?)(await Send(Req(HttpMethod.Get, "/user")))?["username"] ?? "?";
 
+    /// <summary>Tous les projets du compte connecté (téléchargements, abonnés…), vide si pas connecté.</summary>
+    public async Task<JsonArray> GetMyProjectsAsync()
+    {
+        if (!HasToken) return new JsonArray();
+        var id = (string?)(await Send(Req(HttpMethod.Get, "/user")))?["id"];
+        if (id is null) return new JsonArray();
+        return (await Send(Req(HttpMethod.Get, $"/user/{id}/projects")))?.AsArray() ?? new JsonArray();
+    }
+
     // ---------- Projet ----------
 
     public async Task<JsonObject> GetProjectAsync(string idOrSlug)

@@ -160,3 +160,27 @@ public class ModPageTests
         }
     }
 }
+
+public class StatsMathTests
+{
+    private static SiteVersion V(string n, int day, long dl, params string[] games) => new(n, new DateTime(2026, 1, day), dl, games);
+
+    [Fact]
+    public void VersionsOfBothSitesAreAddedUp()
+    {
+        var rows = StatsMath.ByVersion([V("1.0", 1, 10, "26.3"), V("1.1", 5, 4, "26.3")], [V("1.0", 2, 6, "26.3"), V("0.9", 1, 3)]);
+        Assert.Equal(["1.1", "1.0", "0.9"], rows.Select(r => r.Label));
+        var v10 = rows.Single(r => r.Label == "1.0");
+        Assert.Equal((10, 6, 16), (v10.Modrinth, v10.CurseForge, v10.Total));
+        Assert.Equal(new DateTime(2026, 1, 2), v10.Date);
+    }
+
+    [Fact]
+    public void GameVersionsShareDownloadsWithoutLosingAny()
+    {
+        var rows = StatsMath.ByGameVersion([V("1.0", 1, 7, "1.21.9", "1.21.10")], [V("1.0", 1, 5, "26.3")]);
+        Assert.Equal(["26.3", "1.21.10", "1.21.9"], rows.Select(r => r.Label));
+        Assert.Equal(12, rows.Sum(r => r.Total));
+        Assert.Equal(4, rows.Single(r => r.Label == "1.21.9").Modrinth);
+    }
+}

@@ -78,6 +78,7 @@ public sealed partial class MainViewModel : ObservableObject
     public PageViewModel Page { get; }
     public VersionsViewModel Versions { get; }
     public GalleryViewModel Gallery { get; }
+    public StatsViewModel Stats { get; }
 
     [ObservableProperty] private ModItem? _selectedMod;
     [ObservableProperty] private bool _simulation;
@@ -96,6 +97,7 @@ public sealed partial class MainViewModel : ObservableObject
         Page = new PageViewModel(this);
         Versions = new VersionsViewModel(this);
         Gallery = new GalleryViewModel(this);
+        Stats = new StatsViewModel(this);
 
         foreach (var folder in S.Projects.Folders.Where(Directory.Exists))
             Mods.Add(new ModItem(new ModPage(folder)));
@@ -114,6 +116,7 @@ public sealed partial class MainViewModel : ObservableObject
         Page.Load(value?.Page);
         Versions.Load(value?.Page);
         Gallery.Load(value?.Page);
+        Stats.Load(value?.Page);
         RefreshCurrentTab();
     }
 
@@ -124,7 +127,7 @@ public sealed partial class MainViewModel : ObservableObject
         if (!value && _tabRefreshPending) RefreshCurrentTab();
     }
 
-    /// <summary>Versions et Galerie se relisent en ligne dès qu'on arrive dessus (après l'opération en cours s'il y en a une).</summary>
+    /// <summary>Versions, Galerie et Stats se relisent en ligne dès qu'on arrive dessus (après l'opération en cours s'il y en a une).</summary>
     private void RefreshCurrentTab()
     {
         if (ScreenshotMode.Folder is not null || ProbeMode.Folder is not null || SelectedMod is null) return;
@@ -132,6 +135,7 @@ public sealed partial class MainViewModel : ObservableObject
         {
             "versions" => Versions.RefreshCommand,
             "galerie" => Gallery.RefreshCommand,
+            "stats" => Stats.RefreshCommand,
             _ => null,
         };
         _tabRefreshPending = command is not null && Busy;

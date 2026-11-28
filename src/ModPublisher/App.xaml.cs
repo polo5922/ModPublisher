@@ -12,8 +12,10 @@ public partial class App : Application
         DispatcherUnhandledException += OnUnhandled;
         L.Parse(e.Args);
         // Dates et nombres au format de Windows dans le XAML
-        FrameworkElement.LanguageProperty.OverrideMetadata(typeof(FrameworkElement),
-            new FrameworkPropertyMetadata(System.Windows.Markup.XmlLanguage.GetLanguage(System.Globalization.CultureInfo.CurrentCulture.IetfLanguageTag)));
+        var language = System.Windows.Markup.XmlLanguage.GetLanguage(System.Globalization.CultureInfo.CurrentCulture.IetfLanguageTag);
+        FrameworkElement.LanguageProperty.OverrideMetadata(typeof(FrameworkElement), new FrameworkPropertyMetadata(language));
+        // Les Run d'un TextBlock aussi (sinon « 18,080 » au lieu de « 18 080 »)
+        FrameworkContentElement.LanguageProperty.OverrideMetadata(typeof(System.Windows.Documents.TextElement), new FrameworkPropertyMetadata(language));
         Views.ScreenshotMode.Parse(e.Args);
         Views.ProbeMode.Parse(e.Args);
         base.OnStartup(e);
